@@ -1,75 +1,31 @@
-# Nuxt Minimal Starter
+# pygmyapp/client
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+Nuxt based client for pygmy
 
-## Setup
+## Dependencies
+**Pygmy is built with Bun!** It doesn't run on node.js alone, [see here to install](https://bun.com/docs/installation) Bun or [here to learn more](https://bun.sh).
 
-Make sure to install dependencies:
+`pygmyapp/client` depends on `pygmyapp/rest` and `pygmyapp/gateway`.
 
+
+## Install
+### Manual
+- Clone this repository
+- Install dependencies with `bun install`
+- Ensure you have the rest API, and gateway running
+- Copy `.env.example` to `.env` and configure environment variables
+
+
+## Running
+To run in dev mode (nuxt devtools):
 ```bash
-# npm
-npm install
-
-# pnpm
-pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
-```
-
-## Development Server
-
-Start the development server on `http://localhost:3000`:
-
-```bash
-# npm
-npm run dev
-
-# pnpm
-pnpm dev
-
-# yarn
-yarn dev
-
-# bun
 bun run dev
+# or if you use docker...
+docker compose up
 ```
 
-## Production
 
-Build the application for production:
-
-```bash
-# npm
-npm run build
-
-# pnpm
-pnpm build
-
-# yarn
-yarn build
-
-# bun
-bun run build
-```
-
-Locally preview production build:
-
-```bash
-# npm
-npm run preview
-
-# pnpm
-pnpm preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
-```
-
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+## License
+Copyright (c) 2025 Pygmy & contributors
+All code & assets are licensed under GNU GPL v3 unless stated otherwise.
+See `LICENSE` or [see here](https://www.gnu.org/licenses/gpl-3.0.txt).

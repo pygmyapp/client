@@ -9,16 +9,8 @@ export default defineNuxtConfig({
     "/docs": { proxy: "http://localhost:3002/docs/" }
   },
   vite: {
-    
     plugins: [
       tailwindcss()
     ]
-  },
-  $development: {
-    routeRules: {
-      "/docs": { proxy: "http://localhost:3002/docs/" }
-    }
   }
-
-  
 })

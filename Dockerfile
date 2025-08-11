@@ -7,4 +7,4 @@ COPY . .
 
 RUN bun i
 
-ENTRYPOINT [ "bun", "run", "dev", "--no-qr" ]
+ENTRYPOINT [ "bun", "run", "dev" ]
