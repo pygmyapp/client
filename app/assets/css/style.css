@@ -1,0 +1,9 @@
+.circle {
+    height: 7vw;
+    width: 7vw;
+    border-radius: 100%;
+    background-color: black;
+}
+.spaceGroup {
+    background-color: whitesmoke;
+}
