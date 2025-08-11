@@ -1,4 +1,4 @@
-# pygmyapp/client
+# 🐰🌐 pygmyapp/client
 
 Nuxt based client for pygmy
 
