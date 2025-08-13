@@ -1,54 +1,24 @@
-<script setup>
-  import SpaceIcon from '~/components/SpaceIcon.vue';
-  import { useWebSocket } from '@vueuse/core';
-
-  /*console.log($fetch("http://localhost:3000/docs"))
-  
-  const socket = useWebSocket(process.env.WS_URL, {
-    onConnected() {
-      console.log("hi");
-    },
-    onMessage(ws, ev) {
-      console.log(ev);
-    },
-    onDisconnected() {
-      console.log("bye");
-    },
-    onDisconnected(ws, ev) {
-      console.log("lmao");
-    }
-  });
-  socket.open(); */
-</script>
-
 <template>
-  <div :class="{
-    'flex': true
-  }">
-    <div :class="{ 
-      'object-position-left': true,
-      'h-screen': true,
-      'w-16': true,
-      'bg-stone-700': true,
-      'fixed': true
-    }">
-      <space-icon/>
-      <space-icon/>
-      <space-icon/>
-    </div>
-    <div>
-      <div :class="{
-      'bg-stone-600': true,
-      'w-screen': true,
-      'h-12': true
-    }">
-      <p>lol</p>
-    </div>
-      <div :class="{
-        'bg-stone-500': true,
-        'w-s': true,
-        'h-screen': true
-      }"></div>
-    </div>
+  <div class="flex h-screen">
+    <!-- Channel list (direct messages) -->
+    <aside class="w-[241px] bg-muted/75 border-r-1 border-r-neutral-950" id="channels">
+      <UButtonGroup class="my-1.5 mx-2 w-auto">
+        <UInput variant="subtle" size="sm" placeholder="Search..." />
+        <UButton color="neutral" variant="subtle" size="sm" icon="material-symbols:add" />
+      </UButtonGroup>
+
+      <p class="m-2 text-sm opacity-75">No channels found</p>
+    </aside>
+
+    <!-- Chat area -->
+    <main id="chat">
+      <h1>Chat</h1>
+    </main>
   </div>
 </template>
+
+<script setup lang="ts">
+definePageMeta({
+  middleware: ['authenticated']
+});
+</script>
