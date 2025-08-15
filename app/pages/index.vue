@@ -87,7 +87,6 @@ definePageMeta({
 });
 
 const { $cache } = useNuxtApp();
-const toast = useToast();
 
 const selected = ref<'online' | 'all' | 'pending'>('pending');
 const addFriend = ref(false);
@@ -116,7 +115,7 @@ const allFriends = computed(() =>
 );
 
 // TODO: filter by $cache.users, get by id and check that presence.status === ONLINE
-const onlineFriends = computed(() => allFriends.value.filter((user) => true));
+const onlineFriends = computed(() => allFriends.value.filter((user) => false));
 
 const requests = computed(() => ({
   incoming: $cache.user.value.requests

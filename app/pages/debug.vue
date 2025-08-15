@@ -16,7 +16,10 @@
         <h1>Cache</h1>
       </template>
 
+      <p>State: <code>{{ app.$cache.state.value }}</code></p>
       <p>User: <code>{{ app.$cache.user.value }}</code></p>
+      <p>Users: <code>{{ app.$cache.users.data.value }}</code></p>
+      <p>Channels: <code>{{ app.$cache.channels.data.value }}</code></p>
     </UCard>
 
     <UCard>

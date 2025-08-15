@@ -80,6 +80,10 @@
               </p>
               <p class="ml-5 text-left text-sm text-muted text-wrap">You will appear offline, but will have full access to Pygmy.</p>
             </template>
+
+            <template #presence-label>
+              <p>Set status</p>
+            </template>
           </UDropdownMenu>
         </div>
       </aside>
@@ -89,7 +93,8 @@
         <slot />
       </main>
 
-      <div class="fixed bottom-1 right-1 text-muted/50 text-sm pointer-events-none select-none">
+      <!-- Development version -->
+      <div v-if="env === 'development'" class="fixed bottom-1 right-1 text-muted/50 text-sm pointer-events-none select-none">
         Pygmy v{{ runtimeConfig.public.version }} ({{ env }})
       </div>
     </div>
@@ -131,12 +136,18 @@ const userDropdownItems: DropdownMenuItem[] = [
   },
   { type: 'separator' as const },
   {
+    slot: 'presence' as const,
+    icon: 'material-symbols:chat'
+  },
+  { type: 'separator' as const },
+  {
     label: 'Settings',
     icon: 'material-symbols:settings'
   },
   {
     label: 'Log Out',
-    icon: 'material-symbols:logout'
+    icon: 'material-symbols:logout',
+    color: 'error'
   }
 ];
 </script>

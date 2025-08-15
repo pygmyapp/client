@@ -1,29 +1,44 @@
 <template>
   <div class="flex items-center justify-center h-screen">
-    <UCard class="max-w-[520px]" variant="subtle">
+    <UCard class="max-w-[360px]" variant="subtle">
       <template #header>
-        <h1 class="text-xl mb-1">{{ isRegistering() ? "Hi There!" : "Hey, Welcome Back!" }}</h1>
-        <p class="text-sm opacity-75">{{ isRegistering() ? "We'll need some details to create a Pygmy account for you." : "Log in to your Pygmy account to continue." }}</p>
+        <div class="flex flex-col items-center">
+          <img class="w-32 h-auto" src="/icon2.png" />
+
+          <h1 class="text-xl mb-1">Welcome back!</h1>
+          <p class="text-sm opacity-75">Log in to your Pygmy account to continue.</p>
+        </div>
       </template>
 
-      <UForm :schema="schema" :state="state" class="space-y-4 duration-10" @submit="isRegistering() ? handleRegister : handleLogIn">
-
-        <UFormField label="Username" name="username" v-if="isRegistering()">
-          <UInput class="w-full" v-model="state.username" icon="material-symbols:id-card" placeholder="hopper27" />
-        </UFormField>
-
+      <UForm :schema="schema" :state="state" class="space-y-4" @submit="handleLogIn">
         <UFormField label="Email" name="email">
-          <UInput class="w-full" v-model="state.email" icon="material-symbols:alternate-email" placeholder="hello@pygmy.chat" />
+          <UInput class="w-full" v-model="state.email" icon="material-symbols:mail-outline" placeholder="hello@pygmy.chat" />
         </UFormField>
 
         <UFormField label="Password" name="password">
           <UInput class="w-full" v-model="state.password" type="password" icon="material-symbols:password" placeholder="••••••••••••" />
         </UFormField>
 
-        <UButton class="mt-2" type="submit" :loading="loading" :disabled="disabled" block>{{ isRegistering() ? "Register" : "Log In" }}</UButton>
-        <button class="text-sm opacity-75 underline cursor-pointer" @click="changeMode()">{{ isRegistering() ? "Have" : "Need" }} an account?</button>
+        <UButton class="my-2" icon="material-symbols:login" type="submit" :loading="loading" :disabled="disabled" block>Log In</UButton>
+
+        <div class="flex flex-wrap">
+          <UButton class="pt-4 pb-1 px-0" to="/register" color="neutral" variant="link" icon="material-symbols:person-add" block>Register a new account</UButton>
+          <UButton class="pt-1 pb-0 px-0 cursor-pointer" @click="forgotPassword = !forgotPassword" color="neutral" variant="link" icon="material-symbols:help-outline" block>Having trouble logging in?</UButton>
+        </div>
       </UForm>
     </UCard>
+
+    <UModal v-model:open="forgotPassword">
+      <template #content>
+        <UCard>
+          <p>💀</p>
+        </UCard>
+      </template>
+    </UModal>
+
+    <div class="fixed bottom-4 text-muted/50 text-sm pointer-events-none select-none">
+      &copy; {{ new Date().getFullYear() }} Pygmy &amp; contributors
+    </div>
   </div>
 </template>
 
@@ -32,7 +47,7 @@ import * as z from 'zod';
 import type { FormSubmitEvent } from '@nuxt/ui';
 
 useHead({
-  title: 'Log in'
+  title: 'Log In'
 });
 
 definePageMeta({
@@ -43,76 +58,28 @@ definePageMeta({
 const auth = useAuth();
 const toast = useToast();
 
-enum SignInState {
-  LogIn,
-  Register
-}
-
 // Schema
 const schema = z.object({
-  username: z.string(),
   email: z.email({ error: (iss) => iss.input === undefined ? 'Required' : 'Invalid email' }),
-  password: z.string().min(1, 'Required'),
-  mode: z.enum(SignInState)
+  password: z.string().min(1, 'Required')
 });
 
 type Schema = z.output<typeof schema>;
 
 // State
 const state = reactive<Partial<Schema>>({
-  username: "",
-  email: "",
-  password: "",
-  mode: SignInState.LogIn
+  email: '',
+  password: ''
 });
-
-function changeMode() {
-  state.mode = isRegistering() ? SignInState.LogIn : SignInState.Register;
-}
-
-function isRegistering() {
-  return state.mode === SignInState.Register;
-}
 
 const loading = ref(false);
 const disabled = computed(() => !schema.safeParse(state).success);
+const forgotPassword = ref(false);
 
-const handleRegister = async (event: FormSubmitEvent<Schema>) => {
-  loading.value = true;
-  setTimeout(async () => {
-  const { username, email, password } = state;
-  if (!username || !email || !password) return;
-  
-  try {
-    const response: any = await $fetch(`/api/users`, {
-      method: 'POST',
-      body: {
-        username,
-        email,
-        password
-      }
-    });
-
-    if ('errors' in response) throw response.errors;
-    if ('error' in response) throw response.error;
-
-    await auth.logIn(email, username);
-
-    await navigateTo('/');
-  } catch (err) {
-    console.error(err);
-    loading.value = false;
-    toast.add({
-      title: `${err}`,
-      color: 'error'
-    });
-  }
-  }, 1000);
-}
 // Handle log in
 const handleLogIn = async (event: FormSubmitEvent<Schema>) => {
   loading.value = true;
-  setTimeout(async () => {
+
   if (!state.email || !state.password) return;
 
   try {
@@ -127,6 +94,5 @@ const handleLogIn = async (event: FormSubmitEvent<Schema>) => {
       color: 'error'
     });
   }
-  }, 1000);
 }
 </script>
