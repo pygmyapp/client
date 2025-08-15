@@ -1,3 +1,5 @@
+import { version } from './package.json';
+
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
@@ -5,6 +7,7 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
     public: {
+      version,
       gateway: {
         encoding: 'json',
         debug: 2

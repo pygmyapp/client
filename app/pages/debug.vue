@@ -13,6 +13,14 @@
 
     <UCard>
       <template #header>
+        <h1>Cache</h1>
+      </template>
+
+      <p>User: <code>{{ app.$cache.user.value }}</code></p>
+    </UCard>
+
+    <UCard>
+      <template #header>
         <h1>Gateway</h1>
       </template>
 
@@ -29,6 +37,10 @@
 </template>
 
 <script setup lang="ts">
+useHead({
+  title: 'Debug'
+});
+
 definePageMeta({
   middleware: ['authenticated']
 });

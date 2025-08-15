@@ -54,240 +54,299 @@ enum CloseCodes {
   RESUME_TIMED_OUT = 4010
 }
 
-export default defineNuxtPlugin((nuxtApp) => {
-  let ws: any;
+export default defineNuxtPlugin({
+  name: 'gateway',
+  dependsOn: ['cache'],
+  async setup(nuxtApp) {
+    let ws: any;
 
-  const runtimeConfig = useRuntimeConfig();
+    const { $cache } = useNuxtApp();
+    const runtimeConfig = useRuntimeConfig();
 
-  const state = useState('gateway.state', () =>
-    new Object({
-      id: undefined,
-      token: undefined,
-      status: 'disconnected',
-      heartbeat: {
-        interval: undefined,
-        timeout: undefined,
-        lastSent: undefined,
-        lastReceived: undefined,
-        ping: undefined
-      },
-      seq: undefined,
-      shouldResume: false,
-      events: []
-    }) as State
-  );
-
-  return {
-    provide: {
-      gateway: {
-        CloseCodes,
-
-        ws,
-        state,
-
-        get ready() {
-          return state.value.status === 'authenticated';
+    const state = useState('gateway.state', () =>
+      new Object({
+        id: undefined,
+        token: undefined,
+        status: 'disconnected',
+        heartbeat: {
+          interval: undefined,
+          timeout: undefined,
+          lastSent: undefined,
+          lastReceived: undefined,
+          ping: undefined
         },
+        seq: undefined,
+        shouldResume: false,
+        events: []
+      }) as State
+    );
 
-        /**
-         * Connect to the Gateway
-         * @param token Token to authenticate with
-         */
-        async connect(token: string): Promise<void> {
-          state.value.token = token;
+    return {
+      provide: {
+        gateway: {
+          CloseCodes,
 
-          //const url = await $fetch(`${runtimeConfig.public.apiUrl}/gateway`);
+          ws,
+          state,
 
-          // Create WebSocket
-          ws = useState('gateway.ws', () => new WebSocket(`ws://localhost:3002/?encoding=${runtimeConfig.public.gateway.encoding}`));
+          get ready() {
+            return state.value.status === 'authenticated';
+          },
 
-          // Handlers
-          ws.value.addEventListener('open', () => this.handleOpen());
-          ws.value.addEventListener('close', (event: CloseEvent) => this.handleClose(event));
-          ws.value.addEventListener('error', (err: Error) => this.debug(`Error: ${err} [client]`));
-          
-          // Message
-          ws.value.addEventListener('message', (message: MessageEvent) => {
-            const route = useRoute();
-            const data = JSON.parse(message.data as string);
+          /**
+           * Connect to the Gateway
+           * @param token Token to authenticate with
+           */
+          async connect(token: string): Promise<void> {
+            state.value.token = token;
 
-            this.debug(`Raw message: ${message.data} [route: ${route.path}]`);
+            //const url = await $fetch(`${runtimeConfig.public.apiUrl}/gateway`);
 
-            this.handleMessage(data);
-          });
-        },
+            // Create WebSocket
+            ws = useState('gateway.ws', () => new WebSocket(`ws://192.168.1.115:3002/?encoding=${runtimeConfig.public.gateway.encoding}`));
 
-        /**
-         * Send a message to the Gateway
-         * @param message Unencoded message to send 
-         */
-        send(message: Message): void {
-          ws.value.send(
-            JSON.stringify(message)
-          );
-        },
+            // Handlers
+            ws.value.addEventListener('open', () => this.handleOpen());
+            ws.value.addEventListener('close', (event: CloseEvent) => this.handleClose(event));
+            ws.value.addEventListener('error', (err: Error) => this.debug(`Error: ${err} [client]`));
+            
+            // Message
+            ws.value.addEventListener('message', async (message: MessageEvent) => {
+              const route = useRoute();
+              const data = JSON.parse(message.data as string);
 
-        /**
-         * Disconnect from the Gateway
-         * @param code Close code
-         */
-        disconnect(code: number): void {
-          ws.value.close(code);
-        },
+              this.debug(`Raw message: ${message.data} [route: ${route.path}]`);
 
-        /**
-         * Send a heartbeat to the Gateway
-         * @param interval Heartbeat interval
-         */
-        sendHeartbeat(interval: number): void {
-          this.send({
-            op: 4
-          });
+              await this.handleMessage(data);
+            });
+          },
 
-          this.debug(`Sent heartbeat`);
+          /**
+           * Send a message to the Gateway
+           * @param message Unencoded message to send 
+           */
+          send(message: Message): void {
+            ws.value.send(
+              JSON.stringify(message)
+            );
+          },
 
-          state.value.heartbeat.lastSent = Date.now();
-          state.value.heartbeat.timeout = setTimeout(() => this.heartbeatNotAck(), interval + (15 * 1000));
-        },
+          /**
+           * Disconnect from the Gateway
+           * @param code Close code
+           */
+          disconnect(code: number): void {
+            ws.value.close(code);
+          },
 
-        /**
-         * Handle a heartbeat not being acknowledged by the Gateway
-         */
-        heartbeatNotAck(): void {
-          // TODO: this
-          this.debug('Heartbeat not acknowledged in time, closing connection');
+          /**
+           * Send a heartbeat to the Gateway
+           * @param interval Heartbeat interval
+           */
+          sendHeartbeat(interval: number): void {
+            this.send({
+              op: 4
+            });
 
-          clearInterval(state.value.heartbeat.interval);
-      
-          this.disconnect(CloseCodes.SESSION_TIMED_OUT);
-        },
+            this.debug(`Sent heartbeat`);
 
-        /**
-         * Handle WebSocket open event
-         */
-        handleOpen(): void {
-          state.value.status = 'unauthenticated';
+            state.value.heartbeat.lastSent = Date.now();
+            state.value.heartbeat.timeout = setTimeout(() => this.heartbeatNotAck(), interval + (15 * 1000));
+          },
 
-          this.debug('Connected');
-        },
+          /**
+           * Handle a heartbeat not being acknowledged by the Gateway
+           */
+          heartbeatNotAck(): void {
+            // TODO: this
+            this.debug('Heartbeat not acknowledged in time, closing connection');
 
-        /**
-         * Handle WebSocket close event
-         * @param param0 Close event object
-         */
-        handleClose({ code }: CloseEvent): void {
-          this.debug(`Closed: ${code}`);
+            clearInterval(state.value.heartbeat.interval);
+        
+            this.disconnect(CloseCodes.SESSION_TIMED_OUT);
+          },
 
-          // TODO: reset state/other data
+          /**
+           * Handle WebSocket open event
+           */
+          handleOpen(): void {
+            state.value.status = 'unauthenticated';
 
-          // TODO: determine if we should resume or not
-          // and attempt to if we can
-        },
+            this.debug('Connected');
+          },
 
-        /**
-         * Handle WebSocket error event
-         * @param error Error object
-         */
-        handleError(error: Error): void {
-          this.debug(`Error: ${error} [ws]`);
-        },
+          /**
+           * Handle WebSocket close event
+           * @param param0 Close event object
+           */
+          handleClose({ code }: CloseEvent): void {
+            this.debug(`Closed: ${code}`);
 
-        handleMessage({ op, ev, dt, seq }: Message): void {
-          // OP 0 EVENT
-          if (op === OPCodes.EVENT) {
-            if (seq !== undefined) state.value.seq = seq;
+            // TODO: reset state/other data
 
-            this.handleEvent({ op, ev, dt, seq });
-          }
-          
-          // OP 1 HELLO
-          if (op === OPCodes.HELLO) {
-            const data = dt as {
-              interval: number;
-              jitter: number;
-            };
+            // TODO: determine if we should resume or not
+            // and attempt to if we can
+          },
 
-            // Start heartbeating
-            setTimeout(() => {
-              this.sendHeartbeat(data.interval);
+          /**
+           * Handle WebSocket error event
+           * @param error Error object
+           */
+          handleError(error: Error): void {
+            this.debug(`Error: ${error} [ws]`);
+          },
 
-              state.value.heartbeat.interval = setInterval(() => 
-                this.sendHeartbeat(data.interval), data.interval
-              );
-            }, data.interval * data.jitter);
+          async handleMessage({ op, ev, dt, seq }: Message): Promise<void> {
+            // OP 0 EVENT
+            if (op === OPCodes.EVENT) {
+              if (seq !== undefined) state.value.seq = seq;
 
-            if (state.value.shouldResume) {
-              // Resume
-              this.debug('Attempting to resume connection');
-
-              // TODO: attempt to resume...
-            } else {
-              // Identify
-              this.debug('Attempting authentication');
-
-              this.send({
-                op: OPCodes.IDENTIFY, // OP 2 IDENTIFY
-                dt: {
-                  token: state.value.token as string
-                }
-              });
+              await this.handleEvent({ op, ev, dt, seq });
             }
+            
+            // OP 1 HELLO
+            if (op === OPCodes.HELLO) {
+              const data = dt as {
+                interval: number;
+                jitter: number;
+              };
+
+              // Start heartbeating
+              setTimeout(() => {
+                this.sendHeartbeat(data.interval);
+
+                state.value.heartbeat.interval = setInterval(() => 
+                  this.sendHeartbeat(data.interval), data.interval
+                );
+              }, data.interval * data.jitter);
+
+              if (state.value.shouldResume) {
+                // Resume
+                this.debug('Attempting to resume connection');
+
+                // TODO: attempt to resume...
+              } else {
+                // Identify
+                this.debug('Attempting authentication');
+
+                this.send({
+                  op: OPCodes.IDENTIFY, // OP 2 IDENTIFY
+                  dt: {
+                    token: state.value.token as string
+                  }
+                });
+              }
+            }
+
+            // OP 3 READY
+            if (op === OPCodes.READY) {
+              this.debug('Client connected successfully');
+
+              // Prefetch cache
+              await $cache.prefetch();
+
+              const data = dt as {
+                id: string;
+              };
+
+              state.value.id = data.id;
+              state.value.status = 'authenticated';
+            }
+
+            // OP 5 HEARTBEAT_ACK
+            if (op === OPCodes.HEARTBEAT_ACK) {
+              clearTimeout(state.value.heartbeat.timeout);
+              state.value.heartbeat.timeout = undefined;
+              state.value.heartbeat.lastReceived = Date.now();
+
+              state.value.heartbeat.ping = state.value.heartbeat.lastReceived - (state.value.heartbeat.lastSent as number);
+
+              this.debug(`Heartbeat acknowledged (took: ${state.value.heartbeat.ping.toLocaleString()} ms)`);
+            }
+
+            // OP 8 ERROR
+            if (op === OPCodes.ERROR) {
+              const data = dt as {
+                code: number;
+              };
+
+              this.debug(`Error: ${data.code} [server]`);
+            }
+          },
+
+          /**
+           * Handle "OP 0 EVENT" messages
+           * @param data Decoded message data
+           */
+          async handleEvent({ op, ev, dt, seq }: Message): Promise<void> {
+            if (op !== 0 || !ev || typeof seq !== 'number') return;
+
+            if (state.value.seq === undefined || seq > state.value.seq) state.value.seq = seq;
+
+            // Presence update - status update
+            if (ev === 'PRESENCE_UPDATE') {
+              // TODO: presence event
+            }
+
+            // Typing started 
+            if (ev === 'TYPING') {
+              // TODO: typing event
+            }
+
+            // Friend created - a friend request was accepted
+            if (ev === 'FRIEND_CREATE') {
+              const data = dt as { userId: string; }
+
+              // Add friend to cache
+              $cache.user.value.friends.push(data.userId);
+            }
+
+            // Friend deleted - this user removed a friend, another user removed/unfriended this user
+            if (ev === 'FRIEND_DELETE') {
+              const data = dt as { userId: string; }
+
+              // Remove friend from cache
+              const index = $cache.user.value.friends.findIndex((id) => id === data.userId);
+              if (index !== -1) $cache.user.value.friends.splice(index, 1);
+            }
+
+            // Request created - sent/received a friend request
+            if (ev === 'REQUEST_CREATE') {
+              const data = dt as { from: string; to: string; direction: 'INCOMING' | 'OUTGOING'; }
+
+              // Add request to cache
+              $cache.user.value.requests.push({
+                from: data.from,
+                to: data.to,
+                direction: data.direction
+              });
+
+              // Fetch user to make sure they are in the cache
+              await $cache.users.fetch(data.direction === 'INCOMING' ? data.from : data.to);
+            }
+
+            // Request deleted - friend request was accepted/ignored/cancelled
+            if (ev === 'REQUEST_DELETE') {
+              const data = dt as { from: string; to: string; direction: 'INCOMING' | 'OUTGOING'; }
+
+              // Remove request from cache
+              const index = $cache.user.value.requests.findIndex((request) =>
+                request.direction === data.direction
+                && (request.from === data.from || request.to === data.to)
+              );
+
+              if (index !== -1) $cache.user.value.requests.splice(index, 1);
+            }
+          },
+
+          /**
+           * Log a debug event, depending on debug level
+           * @param event Event/message
+           */
+          debug(event: string): void {
+            if (runtimeConfig.public.gateway.debug >= 1) state.value.events.push(event);
+            if (runtimeConfig.public.gateway.debug >= 2) console.debug(`[GATEWAY DEBUG] ${event}`);
           }
-
-          // OP 3 READY
-          if (op === OPCodes.READY) {
-            this.debug('Client connected successfully');
-
-            const data = dt as {
-              id: string;
-            };
-
-            state.value.id = data.id;
-            state.value.status = 'authenticated';
-          }
-
-          // OP 5 HEARTBEAT_ACK
-          if (op === OPCodes.HEARTBEAT_ACK) {
-            clearTimeout(state.value.heartbeat.timeout);
-            state.value.heartbeat.timeout = undefined;
-            state.value.heartbeat.lastReceived = Date.now();
-
-            state.value.heartbeat.ping = state.value.heartbeat.lastReceived - (state.value.heartbeat.lastSent as number);
-
-            this.debug(`Heartbeat acknowledged (took: ${state.value.heartbeat.ping.toLocaleString()} ms)`);
-          }
-
-          // OP 8 ERROR
-          if (op === OPCodes.ERROR) {
-            const data = dt as {
-              code: number;
-            };
-
-            this.debug(`Error: ${data.code} [server]`);
-          }
-        },
-
-        /**
-         * Handle "OP 0 EVENT" messages
-         * @param data Decoded message data
-         */
-        handleEvent({ op, ev, dt, seq }: Message): void {
-          if (op !== 0 || !ev || typeof seq !== 'number') return;
-
-          if (state.value.seq === undefined || seq > state.value.seq) state.value.seq = seq;
-
-          // TODO: handle events!
-          
-          if (ev === 'PRESENCE_UPDATE') {}
-        },
-
-        /**
-         * Log a debug event, depending on debug level
-         * @param event Event/message
-         */
-        debug(event: string): void {
-          if (runtimeConfig.public.gateway.debug >= 1) state.value.events.push(event);
-          if (runtimeConfig.public.gateway.debug >= 2) console.debug(`[GATEWAY DEBUG] ${event}`);
         }
       }
     }
