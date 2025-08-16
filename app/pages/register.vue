@@ -11,8 +11,19 @@
       </template>
 
       <UForm :schema="schema" :state="state" class="space-y-4" @submit="handleRegister">
-        <UFormField label="Username" name="username" help="Unique, case insensitive (lowercase), may only contain letters, numbers, underscores and periods">
+        <UFormField
+          label="Username"
+          name="username"
+          help="Unique, case insensitive (lowercase), may only contain letters, numbers, underscores and periods"
+        >
           <UInput class="w-full" v-model="state.username" icon="material-symbols:alternate-email" placeholder="username" />
+
+          <p
+            v-if="state.username !== undefined && state.username !== ''"
+            :class="usernameAvailableLoading ? 'text-muted' : (usernameAvailable ? 'text-success' : 'text-error') + ' mt-1'"
+          >
+            {{ usernameAvailableLoading ? 'Checking availability...' : (usernameAvailable ? 'Username available!' : `That username isn't available`) }}
+          </p>
         </UFormField>
 
         <USeparator />
@@ -50,6 +61,8 @@
 </template>
 
 <script setup lang="ts">
+import { refDebounced } from '@vueuse/core';
+
 import * as z from 'zod';
 import type { FormSubmitEvent } from '@nuxt/ui';
 
@@ -96,6 +109,22 @@ const state = reactive<Partial<Schema>>({
 const loading = ref(false);
 const disabled = computed(() => !schema.safeParse(state).success);
 
+const usernameDebounced = refDebounced<string | undefined>(toRef(state.username), 500);
+const usernameAvailable = ref<boolean>(false);
+const usernameAvailableLoading = ref<boolean>(false);
+
+// Watch username & check availability
+watch(usernameDebounced, async (newUsername, _oldUsername) => {
+  usernameAvailableLoading.value = true;
+
+  setTimeout(() => usernameAvailableLoading.value = false, 1000);
+
+  /*await $fetch<{ available: boolean }>(`/api/users/availability`, {
+    method: 'GET',
+    ignoreResponseError: true
+  });*/
+});
+
 // Handle log in
 const handleRegister = async (event: FormSubmitEvent<Schema>) => {
   loading.value = true;
@@ -103,7 +132,7 @@ const handleRegister = async (event: FormSubmitEvent<Schema>) => {
   if (!state.username || !state.email || !state.password) return;
 
   try {
-    // TODO: register functionality 
+    // TODO: register functionality
   } catch (err) {
     console.error(err);
     loading.value = false;

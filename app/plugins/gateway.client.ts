@@ -5,6 +5,7 @@ interface State {
   heartbeat: Heartbeat;
   seq: number | undefined;
   shouldResume: boolean;
+  hasFailed: boolean;
   events: string[];
 }
 
@@ -77,6 +78,7 @@ export default defineNuxtPlugin({
         },
         seq: undefined,
         shouldResume: false,
+        hasFailed: false,
         events: []
       }) as State
     );
@@ -108,7 +110,14 @@ export default defineNuxtPlugin({
             // Handlers
             ws.value.addEventListener('open', () => this.handleOpen());
             ws.value.addEventListener('close', (event: CloseEvent) => this.handleClose(event));
-            ws.value.addEventListener('error', (err: Error) => this.debug(`Error: ${err} [client]`));
+
+            // Error
+            ws.value.addEventListener('error', (err: Error) => {
+              this.debug(`Error: ${err} [client]`);
+              
+              this.state.value.hasFailed = true;
+              
+            });
             
             // Message
             ws.value.addEventListener('message', async (message: MessageEvent) => {
