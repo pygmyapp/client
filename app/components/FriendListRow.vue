@@ -36,8 +36,8 @@
       </div>
 
       <div v-if="props.request && props.request.direction === 'INCOMING'" class="ml-auto mt-2">
-        <UButton class="h-8 mr-2" color="success" variant="subtle" icon="material-symbols:check">Accept</UButton>
-        <UButton class="h-8" color="neutral" variant="subtle" icon="material-symbols:close">Ignore</UButton>
+        <UButton class="h-8 mr-2" color="success" variant="subtle" icon="material-symbols:check" @click="handleAcceptIgnoreRequest(true)">Accept</UButton>
+        <UButton class="h-8" color="neutral" variant="subtle" icon="material-symbols:close" @click="handleAcceptIgnoreRequest(false)">Ignore</UButton>
       </div>
 
       <div v-if="props.request && props.request.direction === 'OUTGOING'" class="ml-auto mt-2">
@@ -92,15 +92,10 @@ const friendDropdownItems: DropdownMenuItem[] = [
 
 // Remove friend
 const handleRemoveFriend = async () => {
-  
-}
-
-// Cancel friend request
-const handleCancelRequest = async () => {
   loading.value = true;
 
   try {
-    const response = await $fetch<undefined | { error: string; } | { errors: string[] }>(`/api/users/@me/requests/${user.value?.id}`, {
+    const response = await $fetch<undefined | string | { error: string; } | { errors: string[] }>(`/api/users/@me/friends/${user.value?.id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token.value}`
@@ -108,13 +103,84 @@ const handleCancelRequest = async () => {
       ignoreResponseError: true
     });
 
-    if (response !== undefined && 'errors' in response) throw response.errors.join(', ');
-    if (response !== undefined && 'error' in response) throw response.error;
+    if (response && typeof response !== 'string') {
+      if (response !== undefined && 'errors' in response) throw response.errors.join(', ');
+      if (response !== undefined && 'error' in response) throw response.error;
+    }
 
-    /*toast.add({
-      title: `Pending friend request cancelled`,
-      color: 'neutral'
-    });*/
+    toast.add({
+      title: `Friend removed`,
+      icon: 'material-symbols:group-remove',
+      color: 'neutral',
+      type: 'foreground'
+    });
+  } catch (err) {
+    loading.value = false;
+
+    toast.add({
+      title: `Failed to remove friend`,
+      description: `${err}`,
+      color: 'error'
+    });
+  }
+}
+
+// Accept/ignore friend request
+const handleAcceptIgnoreRequest = async (accept: boolean) => {
+  loading.value = true;
+
+  try {
+    const response = await $fetch<undefined | string | { error: string; } | { errors: string[] }>(`/api/users/@me/requests/${user.value?.id}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token.value}`,
+        'Content-Type': 'application/json'
+      },
+      body: {
+        accept
+      },
+      ignoreResponseError: true
+    });
+
+    if (response && typeof response !== 'string') {
+      if (response !== undefined && 'errors' in response) throw response.errors.join(', ');
+      if (response !== undefined && 'error' in response) throw response.error;
+    }
+
+    toast.add({
+      title: `Friend request ${accept ? 'accepted!' : 'ignored'}`,
+      icon: accept ? 'material-symbols:check' : 'material-symbols:x',
+      color: accept ? 'success' : 'neutral',
+      type: 'foreground'
+    });
+  } catch (err) {
+    loading.value = false;
+
+    toast.add({
+      title: `Failed to ${accept ? 'accept' : 'ignore'} friend request`,
+      description: `${err}`,
+      color: 'error'
+    });
+  }
+}
+
+// Cancel friend request
+const handleCancelRequest = async () => {
+  loading.value = true;
+
+  try {
+    const response = await $fetch<undefined | string | { error: string; } | { errors: string[] }>(`/api/users/@me/requests/${user.value?.id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token.value}`
+      },
+      ignoreResponseError: true
+    });
+
+    if (response && typeof response !== 'string') {
+      if (response !== undefined && 'errors' in response) throw response.errors.join(', ');
+      if (response !== undefined && 'error' in response) throw response.error;
+    }
   } catch (err) {
     loading.value = false;
 

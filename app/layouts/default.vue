@@ -12,7 +12,7 @@
             sideOffset: 0
           }">
             <UChip
-              :show="app.$cache.user.value.requests.length > 0"
+              :show="app.$cache.user.value.requests.filter(({ direction }) => direction === 'INCOMING').length > 0"
               color="error" position="top-left" inset
             >
               <ULink class="mr-2 cursor-pointer" to="/" as="button" :active="false">

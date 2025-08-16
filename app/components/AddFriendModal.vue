@@ -20,6 +20,8 @@
 <script setup lang="ts">
 const open = defineModel<boolean>();
 
+const emit = defineEmits(['close']);
+
 const { token } = useAuth();
 const toast = useToast();
 
@@ -36,7 +38,7 @@ const handleAddFriend = async () => {
 
   try {
     // Send friend request
-    const response = await $fetch<undefined | { error: string; } | { errors: string[] }>(`/api/users/@me/requests`, {
+    const response = await $fetch<undefined | string | { error: string; } | { errors: string[] }>(`/api/users/@me/requests`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token.value}`,
@@ -49,7 +51,7 @@ const handleAddFriend = async () => {
     });
 
     // Handle errors
-    if (response !== undefined) {
+    if (response && typeof response !== 'string') {
       if ('errors' in response) throw response.errors.join(', ');
 
       if ('error' in response) {
@@ -64,12 +66,16 @@ const handleAddFriend = async () => {
 
     open.value = false;
 
+    emit('close');
+
     loading.value = false;
     username.value = undefined;
     
     toast.add({
       title: `Friend request sent successfully`,
-      color: 'success'
+      icon: 'material-symbols:group-add',
+      color: 'success',
+      type: 'foreground'
     });
   } catch (err) {
     loading.value = false;

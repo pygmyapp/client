@@ -5,7 +5,10 @@
       <header class="py-1.5 border-b-1 border-b-muted/60">
         <UButtonGroup class="flex w-auto mx-2">
           <UInput class="flex-grow" variant="subtle" size="sm" placeholder="Search..." />
-          <UButton color="neutral" variant="subtle" size="sm" icon="material-symbols:add" />
+
+          <UTooltip text="Start direct message/create group">
+            <UButton color="neutral" variant="subtle" size="sm" icon="material-symbols:add" />
+          </UTooltip>
         </UButtonGroup>
       </header>
 
@@ -73,7 +76,7 @@
     </main>
 
     <!-- Add Friend -->
-    <AddFriendModal v-model:open="addFriend" />
+    <AddFriendModal v-model:open="addFriend" @close="addFriend = false" />
   </div>
 </template>
 
@@ -88,7 +91,7 @@ definePageMeta({
 
 const { $cache } = useNuxtApp();
 
-const selected = ref<'online' | 'all' | 'pending'>('pending');
+const selected = ref<'online' | 'all' | 'pending'>('online');
 const addFriend = ref(false);
 
 // Fetch user data
