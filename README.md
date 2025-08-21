@@ -8,6 +8,7 @@ Pygmy web client, built with [Nuxt 4](https://nuxt.com/)
 `pygmyapp/client` depends on:
 - an active REST API (`pygmyapp/rest`)
 - an active Gateway (`pygmyapp/gateway`)
+- an active CDN (`pygmyapp/cdn`)
 
 ## Install
 

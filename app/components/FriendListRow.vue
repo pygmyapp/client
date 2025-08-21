@@ -2,14 +2,30 @@
   <div :class="`flex py-2 px-2 rounded-lg hover:bg-muted ${friendDropdown ? 'bg-muted' : ''}`">
     <template v-if="props.type === 'friend'">
       <UAvatar
-        :src="`https://avatar.iran.liara.run/username?username=${user?.username}`"
+        :src="`/cdn/avatars/${user?.id}`"
         class="w-[48px] h-auto"
+        :chip="{
+          inset: true,
+          color: status.color,
+          size: '3xl',
+          position: 'bottom-right',
+          ui: status.offline ? { base: 'bg-gray-600' } : {}
+        }"
       />
 
       <div class="ml-2">
         <p class="text-lg">@{{ user?.username }}</p>
-        <p class="mt-[-4px] text-muted text-sm" v-if="(props.showStatus || true) === true">
-          Offline
+        <p class="mt-[-4px] text-muted text-sm">
+          {{
+            user?.presence.text !== null
+              ? user?.presence.text
+              : {
+                'online': 'Online',
+                'away': 'Away',
+                'dnd': 'Do Not Disturb',
+                'offline': 'Offline'
+              }[user?.presence.status]
+          }}
         </p>
       </div>
 
@@ -24,7 +40,7 @@
 
     <template v-if="props.type === 'request' && props.request">
       <UAvatar
-        :src="`https://avatar.iran.liara.run/username?username=${user?.username}`"
+        :src="`/cdn/avatars/${user?.id}`"
         class="w-[48px] h-auto"
       />
 
@@ -63,7 +79,6 @@ const props = defineProps<{
   type: 'friend' | 'request' | 'blocked';
   id?: string;
   request?: FriendRequest;
-  showStatus?: boolean;
 }>();
 
 const user = computed(() => {
@@ -77,6 +92,18 @@ const user = computed(() => {
 
   return undefined;
 });
+
+const status = computed<{
+  color: 'success' | 'warning' | 'error' | 'neutral';
+  offline: boolean;
+}>(() => {
+  if (user.value?.presence.status === 'online') return { color: 'success', offline: false };
+  if (user.value?.presence.status === 'away') return { color: 'warning', offline: false };
+  if (user.value?.presence.status === 'dnd') return { color: 'error', offline: false };
+  if (user.value?.presence.status === 'offline') return { color: 'neutral', offline: true }
+
+  return { color: 'neutral', offline: false }
+})
 
 const loading = ref(false);
 

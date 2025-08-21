@@ -19,7 +19,6 @@
 
 <script setup lang="ts">
 const open = defineModel<boolean>();
-
 const emit = defineEmits(['close']);
 
 const { token } = useAuth();
@@ -65,7 +64,6 @@ const handleAddFriend = async () => {
     }
 
     open.value = false;
-
     emit('close');
 
     loading.value = false;

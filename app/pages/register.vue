@@ -40,11 +40,7 @@
           <UInput class="w-full" v-model="state.confirmPassword" type="password" icon="material-symbols:password" placeholder="••••••••••••" />
         </UFormField>
 
-        <USeparator />
-
-        <UFormField label="Invite Code" name="inviteCode" help="Your unique invite code">
-          <UInput class="w-full" type="password" icon="material-symbols:key" placeholder="••••••••••••" />
-        </UFormField>
+        <UCheckbox label="I agree to the Terms &amp; Conditions and Privacy Policy" />
 
         <UButton class="my-2" icon="material-symbols:person-add" type="submit" :loading="loading" :disabled="disabled" block>Register</UButton>
 
@@ -133,9 +129,33 @@ const handleRegister = async (event: FormSubmitEvent<Schema>) => {
 
   try {
     // TODO: register functionality
+    const response = await $fetch<
+      { id: string; } | { error: string; } | { errors: string[]; }
+    >(`/api/users`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: {
+        email: state.email,
+        username: state.username.trim(),
+        password: state.password
+      },
+      ignoreResponseError: true
+    });
+
+    if ('errors' in response) throw response.errors;
+    if ('error' in response) throw response.error;
+
+    toast.add({
+      title: `User account created successfully!`,
+      color: 'success'
+    });
   } catch (err) {
     console.error(err);
+
     loading.value = false;
+
     toast.add({
       title: `${err}`,
       color: 'error'

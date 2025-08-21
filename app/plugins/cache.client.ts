@@ -10,9 +10,23 @@ interface UserDataCache {
   blocked: string[];
 }
 
-interface User {
+export interface RawUser {
   id: string;
   username: string;
+}
+
+export interface GatewayUser extends RawUser {
+  presence: Presence;
+}
+
+export interface User extends RawUser {
+  partial: boolean;
+  presence: Presence;
+}
+
+export interface Presence {
+  status: 'online' | 'away' | 'dnd' | 'offline';
+  text: string | null;
 }
 
 export interface FriendRequest {
@@ -107,21 +121,38 @@ export default defineNuxtPlugin({
               if (!token.value) throw 'Token not found';
 
               // Cache
-              const user = users.value.find((user) => user.id === id);
+              const user = users.value.find((user) => user.id === id); 
 
-              if (user !== undefined) return user;
+              if (user !== undefined && user.partial === false) return user;
 
               // Request
-              const response = await $fetch<User | { error: string; }>(`/api/users/${id}`, {
+              const response = await $fetch<RawUser | { error: string; }>(`/api/users/${id}`, {
                 headers: { 'Authorization': `Bearer ${token.value}` }
               });
 
               if ('error' in response) return undefined;
 
-              // Add user to cache
-              users.value.push(response);
+              // Create user
+              const data: User = {
+                ...response,
+                partial: false,
+                presence: {
+                  status: 'offline',
+                  text: null
+                }
+              }
 
-              return response;
+              // Remove old partial user
+              if (user !== undefined) {
+                const index = users.value.indexOf(user);
+
+                if (index !== -1) users.value.splice(index, 1);
+              }
+
+              // Add user to cache
+              users.value.push(data);
+
+              return data;
             }
           },
 

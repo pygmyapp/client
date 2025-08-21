@@ -19,6 +19,11 @@ export default defineNuxtConfig({
       proxy: {
         to: `http://127.0.0.1:3001/**`
       }
+    },
+    '/cdn/**': {
+      proxy: {
+        to: `http://127.0.0.1:3003/**`
+      }
     }
   },
   appConfig: {

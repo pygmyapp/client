@@ -1,7 +1,10 @@
+import { type Presence, type GatewayUser } from './cache.client';
+
 interface State {
   id: string | undefined;
   token: string | undefined;
   status: Status;
+  presence: Presence;
   heartbeat: Heartbeat;
   seq: number | undefined;
   shouldResume: boolean;
@@ -69,6 +72,10 @@ export default defineNuxtPlugin({
         id: undefined,
         token: undefined,
         status: 'disconnected',
+        presence: {
+          status: 'offline',
+          text: null
+        },
         heartbeat: {
           interval: undefined,
           timeout: undefined,
@@ -251,15 +258,25 @@ export default defineNuxtPlugin({
             if (op === OPCodes.READY) {
               this.debug('Client connected successfully');
 
+              const data = dt as {
+                id: string;
+                users: GatewayUser[];
+              };
+
+              // Push initial data
+              $cache.users.data.value.push(
+                ...data.users.map((user) => ({
+                  partial: false,
+                  ...user
+                }))
+              );
+
               // Prefetch cache
               await $cache.prefetch();
 
-              const data = dt as {
-                id: string;
-              };
-
               state.value.id = data.id;
               state.value.status = 'authenticated';
+              state.value.presence.status = 'online';
             }
 
             // OP 5 HEARTBEAT_ACK
@@ -295,6 +312,17 @@ export default defineNuxtPlugin({
             // Presence update - status update
             if (ev === 'PRESENCE_UPDATE') {
               // TODO: presence event
+              const data = dt as { userId: string; oldPresence: Presence; newPresence: Presence; }
+
+              console.log('presence update:', data)
+
+              // Get user and update presence
+              const user = $cache.users.get(data.userId);
+
+              if (!user) return;
+
+              if (data.newPresence === null) user.presence = { status: 'offline', text: null };
+              else user.presence = data.newPresence;
             }
 
             // Typing started 
@@ -346,6 +374,23 @@ export default defineNuxtPlugin({
 
               if (index !== -1) $cache.user.value.requests.splice(index, 1);
             }
+          },
+
+          /**
+           * Update user presence
+           * @param presence Partial presence object
+           */
+          updatePresence(presence: Partial<Presence>): void {
+            console.log(presence.text === undefined ? state.value.presence.text : presence.text)
+
+            this.send({
+              op: OPCodes.EVENT, // OP 0 EVENT
+              ev: 'PRESENCE_UPDATE',
+              dt: {
+                status: presence.status === undefined ? state.value.presence.status : presence.status,
+                text: presence.text === undefined ? state.value.presence.text : presence.text
+              }
+            });
           },
 
           /**

@@ -32,21 +32,26 @@
           </UTooltip>
         </div>
 
-        <ULink class="mx-2 text-sm" to="/debug" as="button">
+        <ULink class="mx-auto text-sm" to="/debug" as="button">
           Debug
+        </ULink>
+
+        <ULink class="mx-auto text-sm" to="/channeltest" as="button">
+          Test
         </ULink>
 
         <div class="absolute bottom-0">
           <UDropdownMenu :items="userDropdownItems" :ui="{ content: 'w-64' }" arrow>
             <UTooltip :text="`@${user?.username}`">
               <UAvatar
-                :src="`https://avatar.iran.liara.run/username?username=${user?.username}`"
+                :src="`/cdn/avatars/${user?.id}`"
                 class="m-3 w-[48px] h-auto"
                 :chip="{
                   inset: true,
-                  color: 'success',
+                  color: status.color || 'neutral',
                   size: '3xl',
-                  position: 'bottom-right'
+                  position: 'bottom-right',
+                  ui: status.offline ? { base: 'bg-gray-600' } : {}
                 }"
               />
             </UTooltip>
@@ -82,7 +87,7 @@
             </template>
 
             <template #presence-label>
-              <p>Set status</p>
+              <p>{{ $gateway.state.value.presence.text ? `"${$gateway.state.value.presence.text}"` : 'Set status' }}</p>
             </template>
           </UDropdownMenu>
         </div>
@@ -97,6 +102,8 @@
       <div v-if="env === 'development'" class="fixed bottom-1 right-1 text-muted/50 text-sm pointer-events-none select-none">
         Pygmy v{{ runtimeConfig.public.version }} ({{ env }})
       </div>
+
+      <SetStatusModal v-model:open="setStatus" @close="setStatus = false" />
     </div>
   </ClientOnly>
 </template>
@@ -109,12 +116,27 @@ const runtimeConfig = useRuntimeConfig();
 const { user, token } = useAuth();
 
 const env = process.env.NODE_ENV;
+const setStatus = ref(false);
 
 // Connect to Gateway
 if (app.$gateway && app.$gateway.state.value.status === 'disconnected')
   app.$gateway.connect(token.value!);
 
-const userDropdownItems: DropdownMenuItem[] = [
+// User status
+const status = computed<{
+  color: 'success' | 'warning' | 'error' | 'neutral';
+  offline: boolean;
+}>(() => {
+  if (app.$gateway.state.value.presence.status === 'online') return { color: 'success', offline: false };
+  if (app.$gateway.state.value.presence.status === 'away') return { color: 'warning', offline: false };
+  if (app.$gateway.state.value.presence.status === 'dnd') return { color: 'error', offline: false };
+  if (app.$gateway.state.value.presence.status === 'offline') return { color: 'neutral', offline: true }
+
+  return { color: 'neutral', offline: false }
+});
+
+// User dropdown
+const userDropdownItems = computed<DropdownMenuItem[]>(() => ([
   {
     label: `@${user.value?.username}`,
     avatar: {
@@ -123,21 +145,62 @@ const userDropdownItems: DropdownMenuItem[] = [
   },
   { type: 'separator' as const },
   {
-    slot: 'online' as const
+    slot: 'online' as const,
+    active: app.$gateway.state.value.presence.status === 'online',
+    onSelect: () => {
+      if (app.$gateway.state.value.presence.status === 'online') return;
+
+      app.$gateway.updatePresence({
+        status: 'online'
+      });
+
+      app.$gateway.state.value.presence.status = 'online';
+    }
   },
   {
-    slot: 'away' as const
+    slot: 'away' as const,
+    active: app.$gateway.state.value.presence.status === 'away',
+    onSelect: () => {
+      if (app.$gateway.state.value.presence.status === 'away') return;
+
+      app.$gateway.updatePresence({
+        status: 'away'
+      });
+
+      app.$gateway.state.value.presence.status = 'away';
+    }
   },
   {
-    slot: 'dnd' as const
+    slot: 'dnd' as const,
+    active: app.$gateway.state.value.presence.status === 'dnd',
+    onSelect: () => {
+      if (app.$gateway.state.value.presence.status === 'dnd') return;
+
+      app.$gateway.updatePresence({
+        status: 'dnd'
+      });
+
+      app.$gateway.state.value.presence.status = 'dnd';
+    }
   },
   {
-    slot: 'invisible' as const
+    slot: 'invisible' as const,
+    active: app.$gateway.state.value.presence.status === 'offline',
+    onSelect: () => {
+      if (app.$gateway.state.value.presence.status === 'offline') return;
+
+      app.$gateway.updatePresence({
+        status: 'offline'
+      });
+
+      app.$gateway.state.value.presence.status = 'offline';
+    }
   },
   { type: 'separator' as const },
   {
     slot: 'presence' as const,
-    icon: 'material-symbols:chat'
+    icon: 'material-symbols:chat',
+    onClick: () => setStatus.value = true
   },
   { type: 'separator' as const },
   {
@@ -149,5 +212,5 @@ const userDropdownItems: DropdownMenuItem[] = [
     icon: 'material-symbols:logout',
     color: 'error'
   }
-];
+]));
 </script>
